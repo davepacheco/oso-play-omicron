@@ -32,6 +32,7 @@ resource Fleet {
 
 	roles = [ "admin" ];
 	"create_organization" if "admin";
+	"list_child" if "admin";
 }
 
 resource Organization {
@@ -63,11 +64,13 @@ resource Organization {
 	"delete" if "admin";
 	"modify" if "admin";
 
-	# Role relationships
+	# Role definitions
 	"viewer" if "collaborator";
 	"collaborator" if "admin";
 
-
+	# Relationships
+	relations = { parent: Fleet };
+	"viewer" if "admin" on "parent";
 }
 
 resource Project {
@@ -103,9 +106,13 @@ resource Project {
 	"delete" if "admin";
 	"modify" if "admin";
 
-	# Role relationships
+	# Role definitions
 	"viewer" if "collaborator";
 	"collaborator" if "admin";
+
+	# Relationships
+	relations = { parent: Organization };
+	"viewer" if "viewer" on "parent";
 }
 
 resource Instance {
@@ -114,4 +121,24 @@ resource Instance {
 
 	"modify" if "admin";
 	"delete" if "admin";
+
+	# Relationships
+	relations = { parent: Organization };
+	"admin" if "collaborator" on "parent";
 }
+
+has_relation(project: Project, "parent", instance: Instance)
+	if instance.project_id = project.id;
+has_relation(organization: Organization, "parent", project: Project)
+	if project.organization_id = organization.id;
+has_relation(_fleet: Fleet, "parent", _organization: Organization);
+
+# XXX What will this really look like?
+has_role(actor: User, role: String, resource: Fleet)
+	if actor.has_role_fleet(role, resource);
+has_role(actor: User, role: String, resource: Organization)
+	if actor.has_role_org(role, resource);
+has_role(actor: User, role: String, resource: Project)
+	if actor.has_role_project(role, resource);
+has_role(actor: User, role: String, resource: Instance)
+	if actor.has_role_instance(role, resource);

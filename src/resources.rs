@@ -3,6 +3,7 @@
 use lazy_static::lazy_static;
 use oso::Class;
 use oso::PolarClass;
+use uuid::Uuid;
 
 lazy_static! {
     pub static ref COMMON_RESOURCES: [Class; 8] = [
@@ -17,15 +18,82 @@ lazy_static! {
     ];
 }
 
-#[derive(PolarClass)]
-struct User;
-#[derive(PolarClass)]
-struct Team;
-#[derive(PolarClass)]
-struct Service;
+#[derive(Clone, Debug)]
+pub struct User {
+    name: String,
+}
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum Action {
+impl User {
+    pub fn new(name: &str) -> User {
+        User { name: name.to_string() }
+    }
+
+    fn has_role_fleet(&self, role_name: &str, _: &Fleet) -> bool {
+        // XXX
+        self.name == "fran" && role_name == "admin"
+    }
+
+    fn has_role_organization(&self, role_name: &str, _: &Organization) -> bool {
+        // XXX do we need to apply the recursive policies here?  Seems like you
+        // shouldn't.
+        (role_name == "admin" && self.name == "omar")
+            || (role_name == "collaborator" && self.name == "olivia")
+            || (role_name == "viewer" && self.name == "oscar")
+    }
+
+    fn has_role_project(&self, role_name: &str, _: &Project) -> bool {
+        // XXX do we need to apply the recursive policies here?  Seems like you
+        // shouldn't.
+        (role_name == "admin" && self.name == "page")
+            || (role_name == "collaborator" && self.name == "pedro")
+            || (role_name == "viewer" && self.name == "pete")
+    }
+
+    fn has_role_instance(&self, role_name: &str, _: &Instance) -> bool {
+        // XXX do we need to apply the recursive policies here?  Seems like you
+        // shouldn't.
+        role_name == "admin" && self.name == "inigo"
+    }
+}
+
+impl PolarClass for User {
+    fn get_polar_class() -> Class {
+        Self::get_polar_class_builder()
+            .add_method(
+                "has_role_fleet",
+                |user: &User, role_name: String, fleet: Fleet| {
+                    user.has_role_fleet(&role_name, &fleet)
+                },
+            )
+            .add_method(
+                "has_role_org",
+                |user: &User, role_name: String, organization: Organization| {
+                    user.has_role_organization(&role_name, &organization)
+                },
+            )
+            .add_method(
+                "has_role_project",
+                |user: &User, role_name: String, project: Project| {
+                    user.has_role_project(&role_name, &project)
+                },
+            )
+            .add_method(
+                "has_role_instance",
+                |user: &User, role_name: String, instance: Instance| {
+                    user.has_role_instance(&role_name, &instance)
+                },
+            )
+            .build()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PolarClass)]
+pub struct Team;
+#[derive(Clone, Copy, Debug, PolarClass)]
+pub struct Service;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Action {
     // Common to most resources
     Modify,
     Delete,
@@ -70,12 +138,50 @@ impl oso::PolarClass for Action {
     }
 }
 
-#[derive(PolarClass)]
-struct Fleet;
+#[derive(Clone, Copy, Debug, PolarClass)]
+pub struct Fleet;
 
-#[derive(PolarClass)]
-struct Organization;
-#[derive(PolarClass)]
-struct Project;
-#[derive(PolarClass)]
-struct Instance;
+#[derive(Clone, Copy, Debug)]
+pub struct Organization {
+    pub id: Uuid,
+}
+
+impl PolarClass for Organization {
+    fn get_polar_class() -> Class {
+        Self::get_polar_class_builder()
+            .add_attribute_getter("id", |r| r.id.to_string())
+            .build()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Project {
+    pub id: Uuid,
+    pub organization_id: Uuid,
+}
+
+impl PolarClass for Project {
+    fn get_polar_class() -> Class {
+        Self::get_polar_class_builder()
+            .add_attribute_getter("id", |r| r.id.to_string())
+            .add_attribute_getter("organization_id", |r| {
+                r.organization_id.to_string()
+            })
+            .build()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Instance {
+    pub id: Uuid,
+    pub project_id: Uuid,
+}
+
+impl PolarClass for Instance {
+    fn get_polar_class() -> Class {
+        Self::get_polar_class_builder()
+            .add_attribute_getter("id", |r| r.id.to_string())
+            .add_attribute_getter("project_id", |r| r.project_id.to_string())
+            .build()
+    }
+}
