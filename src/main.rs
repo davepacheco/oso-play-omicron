@@ -7,7 +7,6 @@ fn main() {
     let rebac_oso = oso_play_omicron::model_rebac::make_oso();
 
     run_checks(&rebac_oso.expect("failed to set up rebac Oso"));
-    todo!("load both models and run the same battery of checks against them");
 }
 
 fn run_checks(oso: &oso::Oso) {
