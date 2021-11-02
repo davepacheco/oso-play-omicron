@@ -22,7 +22,7 @@ fn run_checks(oso: &oso::Oso) {
         "00000000-0000-0000-0000-000000000000".parse().unwrap();
     let project_id = "11111111-1111-1111-1111-111111111111".parse().unwrap();
     let instance_id = "22222222-2222-2222-2222-222222222222".parse().unwrap();
-    let the_org = resources::Organization { id: organization_id };
+    let the_organization = resources::Organization { id: organization_id };
     let the_project = resources::Project { id: project_id, organization_id };
     let the_instance = resources::Instance { id: instance_id, project_id };
 
@@ -35,6 +35,7 @@ fn run_checks(oso: &oso::Oso) {
     let user_pete = resources::User::new("pete");
     let user_inigo = resources::User::new("inigo");
 
+    // Check all fleet-level permissions
     check_all(
         oso,
         &[user_fran],
@@ -54,6 +55,54 @@ fn run_checks(oso: &oso::Oso) {
         ],
         the_fleet,
         &[Action::CreateOrganization, Action::ListChild],
+    );
+
+    // Check all organization-level permissions
+    check_all(
+        oso,
+        &[user_omar],
+        the_organization,
+        &[Action::Delete, Action::Modify],
+    );
+    check_none(
+        oso,
+        &[
+            user_fran,
+            user_olivia,
+            user_oscar,
+            user_page,
+            user_pedro,
+            user_pete,
+            user_inigo,
+        ],
+        the_organization,
+        &[Action::Delete, Action::Modify],
+    );
+
+    check_all(
+        oso,
+        &[user_omar, user_olivia],
+        the_organization,
+        &[Action::CreateProject],
+    );
+    check_none(
+        oso,
+        &[user_fran, user_oscar, user_page, user_pedro, user_pete, user_inigo],
+        the_organization,
+        &[Action::CreateProject],
+    );
+
+    check_all(
+        oso,
+        &[user_omar, user_olivia, user_oscar, user_fran],
+        the_organization,
+        &[Action::ListChild],
+    );
+    check_none(
+        oso,
+        &[user_page, user_pedro, user_pete, user_inigo],
+        the_organization,
+        &[Action::ListChild],
     );
 }
 

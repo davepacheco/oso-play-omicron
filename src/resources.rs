@@ -18,14 +18,14 @@ lazy_static! {
     ];
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct User {
-    name: String,
+    name: &'static str,
 }
 
 impl User {
-    pub fn new(name: &str) -> User {
-        User { name: name.to_string() }
+    pub fn new(name: &'static str) -> User {
+        User { name }
     }
 
     fn has_role_fleet(&self, role_name: &str, _: &Fleet) -> bool {
