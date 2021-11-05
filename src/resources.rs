@@ -18,9 +18,9 @@ lazy_static! {
     ];
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct User {
-    name: &'static str,
+    pub name: &'static str,
 }
 
 impl User {

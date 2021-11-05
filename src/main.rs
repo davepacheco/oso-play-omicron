@@ -33,102 +33,50 @@ fn run_checks(oso: &oso::Oso) {
     let user_pedro = resources::User::new("pedro");
     let user_pete = resources::User::new("pete");
     let user_inigo = resources::User::new("inigo");
+    let all_users = &[
+        user_fran,
+        user_omar,
+        user_olivia,
+        user_oscar,
+        user_page,
+        user_pedro,
+        user_pete,
+        user_inigo,
+    ];
 
     // Check all fleet-level permissions
-    check_all(
+    check_exactly(
         oso,
+        all_users,
         &[user_fran],
-        the_fleet,
-        &[Action::CreateOrganization, Action::ListChild],
-    );
-    check_none(
-        oso,
-        &[
-            user_omar,
-            user_olivia,
-            user_oscar,
-            user_page,
-            user_pedro,
-            user_pete,
-            user_inigo,
-        ],
         the_fleet,
         &[Action::CreateOrganization, Action::ListChild],
     );
 
     // Check all organization-level permissions
-    check_all(
+    check_exactly(
         oso,
+        all_users,
         &[user_omar],
         the_organization,
         &[Action::Delete, Action::Modify],
     );
-    check_none(
-        oso,
-        &[
-            user_fran,
-            user_olivia,
-            user_oscar,
-            user_page,
-            user_pedro,
-            user_pete,
-            user_inigo,
-        ],
-        the_organization,
-        &[Action::Delete, Action::Modify],
-    );
 
-    check_all(
+    check_exactly(
         oso,
+        all_users,
         &[user_omar, user_olivia],
         the_organization,
         &[Action::CreateProject],
     );
-    check_none(
-        oso,
-        &[user_fran, user_oscar, user_page, user_pedro, user_pete, user_inigo],
-        the_organization,
-        &[Action::CreateProject],
-    );
 
-    check_all(
+    check_exactly(
         oso,
+        all_users,
         &[user_omar, user_olivia, user_oscar, user_fran],
         the_organization,
         &[Action::ListChild],
     );
-    check_none(
-        oso,
-        &[user_page, user_pedro, user_pete, user_inigo],
-        the_organization,
-        &[Action::ListChild],
-    );
-}
-
-fn check_all<T: oso::PolarClass + Clone + Debug + Send + Sync>(
-    oso: &Oso,
-    users: &[resources::User],
-    resource: T,
-    actions: &[resources::Action],
-) {
-    for u in users {
-        for a in actions {
-            check(true, oso, u, *a, resource.clone());
-        }
-    }
-}
-
-fn check_none<T: oso::PolarClass + Clone + Debug + Send + Sync>(
-    oso: &Oso,
-    users: &[resources::User],
-    resource: T,
-    actions: &[resources::Action],
-) {
-    for u in users {
-        for a in actions {
-            check(false, oso, u, *a, resource.clone());
-        }
-    }
 }
 
 fn check<T: oso::PolarClass + Debug + Send + Sync>(
@@ -140,11 +88,35 @@ fn check<T: oso::PolarClass + Debug + Send + Sync>(
 ) {
     eprint!(
         "check: {:?} {:?} {:?} (expected: {}, ",
-        user, action, resource, expected_result
+        user.name, action, resource, expected_result
     );
     let result = oso
         .is_allowed(user.clone(), action, resource)
         .expect("authz check failed");
     eprintln!("actual: {})", result);
     assert_eq!(expected_result, result);
+}
+
+fn check_exactly<T: oso::PolarClass + Clone + Debug + Send + Sync>(
+    oso: &Oso,
+    all_users: &[resources::User],
+    allowed_users: &[resources::User],
+    resource: T,
+    actions: &[resources::Action],
+) {
+    /*
+     * We could do better here by using a better data structure, but the sizes
+     * in this example are tiny.
+     */
+    for user in all_users {
+        for action in actions {
+            check(
+                allowed_users.contains(user),
+                oso,
+                user,
+                *action,
+                resource.clone(),
+            )
+        }
+    }
 }
