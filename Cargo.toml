@@ -9,6 +9,8 @@ edition = "2021"
 anyhow = "1"
 lazy_static = "1.4"
 oso = "0.22"
+tracing = "0.1.29"
+tracing-subscriber = { version = "0.3.1", features = [ "std", "env-filter", "fmt", "ansi" ] }
 uuid = "0.8"
 
 [patch.crates-io]

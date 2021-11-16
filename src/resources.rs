@@ -14,7 +14,7 @@ lazy_static! {
         Fleet::get_polar_class(),
         Organization::get_polar_class(),
         Project::get_polar_class(),
-        Instance::get_polar_class(),
+        VmInstance::get_polar_class(),
     ];
 }
 
@@ -49,7 +49,7 @@ impl User {
             || (role_name == "viewer" && self.name == "pete")
     }
 
-    fn has_role_instance(&self, role_name: &str, _: &Instance) -> bool {
+    fn has_role_vminstance(&self, role_name: &str, _: &VmInstance) -> bool {
         // XXX do we need to apply the recursive policies here?  Seems like you
         // shouldn't.
         role_name == "admin" && self.name == "inigo"
@@ -78,9 +78,9 @@ impl PolarClass for User {
                 },
             )
             .add_method(
-                "has_role_instance",
-                |user: &User, role_name: String, instance: Instance| {
-                    user.has_role_instance(&role_name, &instance)
+                "has_role_vminstance",
+                |user: &User, role_name: String, vminstance: VmInstance| {
+                    user.has_role_vminstance(&role_name, &vminstance)
                 },
             )
             .build()
@@ -150,6 +150,7 @@ impl PolarClass for Organization {
     fn get_polar_class() -> Class {
         Self::get_polar_class_builder()
             .add_attribute_getter("id", |r| r.id.to_string())
+            .add_attribute_getter("fleet", |_| Fleet)
             .build()
     }
 }
@@ -172,16 +173,20 @@ impl PolarClass for Project {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Instance {
+pub struct VmInstance {
     pub id: Uuid,
     pub project_id: Uuid,
 }
 
-impl PolarClass for Instance {
+impl PolarClass for VmInstance {
     fn get_polar_class() -> Class {
         Self::get_polar_class_builder()
             .add_attribute_getter("id", |r| r.id.to_string())
             .add_attribute_getter("project_id", |r| r.project_id.to_string())
+            .add_attribute_getter("project", |r| Project {
+                id: r.project_id,
+                organization_id: r.project_id,
+            }) // XXX
             .build()
     }
 }

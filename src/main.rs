@@ -4,6 +4,7 @@ use oso_play_omicron::resources::Action;
 use std::fmt::Debug;
 
 fn main() {
+    tracing_subscriber::fmt::init();
     let rebac_oso = oso_play_omicron::model_rebac::make_oso();
 
     run_checks(&rebac_oso.expect("failed to set up rebac Oso"));
@@ -21,9 +22,10 @@ fn run_checks(oso: &oso::Oso) {
         "00000000-0000-0000-0000-000000000000".parse().unwrap();
     let project_id = "11111111-1111-1111-1111-111111111111".parse().unwrap();
     let instance_id = "22222222-2222-2222-2222-222222222222".parse().unwrap();
+    let the_fleet = resources::Fleet;
     let the_organization = resources::Organization { id: organization_id };
     let the_project = resources::Project { id: project_id, organization_id };
-    let the_instance = resources::Instance { id: instance_id, project_id };
+    let the_instance = resources::VmInstance { id: instance_id, project_id };
 
     let user_fran = resources::User::new("fran");
     let user_omar = resources::User::new("omar");
@@ -90,9 +92,9 @@ fn check<T: oso::PolarClass + Debug + Send + Sync>(
         "check: {:?} {:?} {:?} (expected: {}, ",
         user.name, action, resource, expected_result
     );
-    let result = oso
-        .is_allowed(user.clone(), action, resource)
-        .expect("authz check failed");
+    let result = oso.is_allowed(user.clone(), action, resource).unwrap_or_else(
+        |error| panic!("authz check failed: {:#}\n{:?}", error, error),
+    );
     eprintln!("actual: {})", result);
     assert_eq!(expected_result, result);
 }

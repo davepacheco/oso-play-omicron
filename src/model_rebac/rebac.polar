@@ -19,7 +19,10 @@ allow(actor: Actor, action: Action, resource: Resource) if
 ###
 # XXX Will probably make heavy use of "Relations" here:
 # https://docs.osohq.com/guides/data_filtering.html#relations
-# XXX It looks like relations are not implemented in the Rust crate either.
+# It's not clear how much of this is implemented for the Rust consumer.  We can
+# define a policy that uses relations, plus relation rules.  I think what's
+# missing is just the ability to define a relation on the PolarClass, which
+# would facilitate data filtering.
 
 # RBAC Resourcess
 
@@ -115,7 +118,7 @@ resource Project {
 	"viewer" if "viewer" on "parent";
 }
 
-resource Instance {
+resource VmInstance {
 	permissions = [ "modify", "delete" ];
 	roles = [ "admin" ];
 
@@ -127,11 +130,12 @@ resource Instance {
 	"admin" if "collaborator" on "parent";
 }
 
-has_relation(project: Project, "parent", instance: Instance)
-	if instance.project_id = project.id;
+has_relation(project: Project, "parent", vminstance: VmInstance)
+	if vminstance.project = project;
 has_relation(organization: Organization, "parent", project: Project)
-	if project.organization_id = organization.id;
-has_relation(_fleet: Fleet, "parent", _organization: Organization);
+	if project.organization = organization;
+has_relation(fleet: Fleet, "parent", organization: Organization)
+	if organization.fleet = fleet;
 
 # XXX What will this really look like?
 has_role(actor: User, role: String, resource: Fleet)
@@ -140,5 +144,5 @@ has_role(actor: User, role: String, resource: Organization)
 	if actor.has_role_org(role, resource);
 has_role(actor: User, role: String, resource: Project)
 	if actor.has_role_project(role, resource);
-has_role(actor: User, role: String, resource: Instance)
-	if actor.has_role_instance(role, resource);
+has_role(actor: User, role: String, resource: VmInstance)
+	if actor.has_role_vminstance(role, resource);
